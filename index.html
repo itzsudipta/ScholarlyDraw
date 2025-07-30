@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI LaTeX Diagram Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+
+        #chat-window {
+            height: calc(100vh - 140px);
+            /* Full height minus header and footer */
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #a0aec0 #e2e8f0;
+        }
+
+        #chat-window::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #chat-window::-webkit-scrollbar-track {
+            background: #e2e8f0;
+        }
+
+        #chat-window::-webkit-scrollbar-thumb {
+            background-color: #a0aec0;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .user-message {
+            justify-content: flex-end;
+        }
+
+        .ai-message {
+            justify-content: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 85%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .icon-path {
+            stroke: currentColor;
+        }
+    </style>
+</head>
+
+<body class="flex flex-col h-screen">
+    <header
+        class="bg-gradient-to-r from-gray-800 to-gray-900 shadow-lg p-4 text-center text-white flex items-center justify-center space-x-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9.75 3.104l-2.28 2.28-1.326.994-2.28 2.28a1.5 1.5 0 000 2.122l2.28 2.28.994 1.326 2.28 2.28a1.5 1.5 0 002.122 0l2.28-2.28 1.326-.994 2.28-2.28a1.5 1.5 0 000-2.122l-2.28-2.28-.994-1.326-2.28-2.28a1.5 1.5 0 00-2.122 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round"
+                d="M15.75 15.75l-2.28 2.28-1.326.994-2.28 2.28a1.5 1.5 0 000 2.122l2.28 2.28.994 1.326 2.28 2.28a1.5 1.5 0 002.122 0l2.28-2.28 1.326-.994 2.28-2.28a1.5 1.5 0 000-2.122l-2.28-2.28-.994-1.326-2.28-2.28a1.5 1.5 0 00-2.122 0z" />
+        </svg>
+        <h1 class="text-2xl font-bold">AI LaTeX Diagram Generator</h1>
+    </header>
+
+    <main id="chat-window" class="flex-1 p-6 space-y-6">
+        <!-- Chat messages will be appended here -->
+        <div class="flex ai-message">
+            <div class="message-bubble bg-white text-gray-800 p-4 rounded-xl rounded-bl-none">
+                <p>Hello! I can help you generate LaTeX diagrams. Please describe the diagram you want to create in as
+                    much detail as possible.</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white p-3 border-t-2 border-gray-200">
+        <div class="flex items-center max-w-4xl mx-auto">
+            <input type="text" id="user-input"
+                class="flex-1 p-3 border-2 border-gray-300 rounded-l-full focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none transition"
+                placeholder="e.g., A flowchart for the Adam optimizer...">
+            <button id="send-btn"
+                class="bg-blue-600 text-white font-bold p-3 rounded-r-full hover:bg-blue-700 transition-colors flex items-center justify-center w-16 h-12">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        const chatWindow = document.getElementById('chat-window');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        function addMessage(content, type) {
+            const messageContainer = document.createElement('div');
+            messageContainer.className = `flex items-start gap-3 ${type}-message`;
+
+            const messageBubble = document.createElement('div');
+            messageBubble.className = 'message-bubble p-4 rounded-xl';
+
+            if (type === 'user') {
+                messageContainer.classList.add('justify-end');
+                messageBubble.classList.add('bg-blue-600', 'text-white', 'rounded-br-none');
+                messageBubble.innerHTML = `<p>${content}</p>`;
+            } else { // AI message
+                messageContainer.classList.add('justify-start');
+                messageBubble.classList.add('bg-white', 'text-gray-800', 'rounded-bl-none');
+                messageBubble.innerHTML = content;
+            }
+
+            messageContainer.appendChild(messageBubble);
+            chatWindow.appendChild(messageContainer);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function addTypingIndicator() {
+            const typingIndicatorHTML = `
+                <div class="flex ai-message" id="typing-indicator">
+                    <div class="message-bubble bg-white text-gray-800 p-4 rounded-xl rounded-bl-none flex items-center space-x-2">
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0s;"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.2s;"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style="animation-delay: 0.4s;"></div>
+                    </div>
+                </div>`;
+            chatWindow.insertAdjacentHTML('beforeend', typingIndicatorHTML);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        async function handleSend() {
+            const description = userInput.value.trim();
+            if (!description) return;
+
+            addMessage(description, 'user');
+            userInput.value = '';
+            addTypingIndicator();
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: description }),
+                });
+
+                removeTypingIndicator();
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok.');
+                }
+
+                const data = await response.json();
+                const formattedCode = `
+                    <p class="text-sm font-medium mb-2">Here is the complete LaTeX code for your diagram:</p>
+                    <div class="relative">
+                        <button onclick="copyCode(this)" class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold py-1 px-2 rounded-md transition-colors">Copy</button>
+                        <pre class="bg-gray-900 text-white p-4 rounded-md font-mono text-sm mt-2"><code>${data.latex_code.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>
+                    </div>`;
+                addMessage(formattedCode, 'ai');
+
+            } catch (error) {
+                console.error('Error:', error);
+                removeTypingIndicator();
+                addMessage('<p class="text-red-500 font-medium">Sorry, an error occurred while generating the code. Please try again.</p>', 'ai');
+            }
+        }
+
+        function copyCode(button) {
+            const codeElement = button.nextElementSibling.querySelector('code');
+            navigator.clipboard.writeText(codeElement.innerText).then(() => {
+                button.textContent = 'Copied!';
+                setTimeout(() => { button.textContent = 'Copy'; }, 2000);
+            });
+        }
+
+        sendBtn.addEventListener('click', handleSend);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSend();
+            }
+        });
+    </script>
+</body>
+
+</html>

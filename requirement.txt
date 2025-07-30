@@ -1,0 +1,4 @@
+Flask
+langchain-ibm
+gunicorn
+python-dotenv
